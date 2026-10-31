@@ -294,6 +294,7 @@ pub struct Terminal {
     payloads: Payloads,
     wrapper: Wrapper,
     image_id: u32,
+    back_image_id: Option<u32>,
     placeholders: Option<(u32, u32)>,
     placed_grid: Option<(u32, u32)>,
     identity: Identity,
@@ -564,6 +565,7 @@ impl Terminal {
             payloads: Payloads::default(),
             wrapper,
             image_id: frame_image_id(wrapper.relayed()),
+            back_image_id: wrapper.relayed().then(|| frame_image_id(true) | BACK_IMAGE_ID_BIT),
             placeholders: None,
             placed_grid: None,
             identity: Identity::Unknown,
@@ -1500,6 +1502,7 @@ impl Terminal {
 
 const SHM_PROBE_ID: u32 = 299;
 const FILE_PROBE_ID: u32 = 300;
+const BACK_IMAGE_ID_BIT: u32 = 1 << 23;
 const FRAME_PROBE_TIMEOUT_MS: u64 = 300;
 
 const FRAME_SLOTS: u64 = 8;
@@ -1573,7 +1576,7 @@ fn frame_image_id(relayed: bool) -> u32 {
     if !relayed {
         return 1;
     }
-    match std::process::id() & 0xff_ffff {
+    match std::process::id() & (BACK_IMAGE_ID_BIT - 1) {
         0 | SHM_PROBE_ID => SHM_PROBE_ID + 1,
         id => id,
     }
@@ -1716,6 +1719,10 @@ impl Drop for Terminal {
         self.payloads.remove_all();
         let delete = crate::kitty::kitty_delete(self.image_id, self.wrapper);
         let _ = self.io.out().write_all(&delete);
+        if let Some(id) = self.back_image_id {
+            let delete = crate::kitty::kitty_delete(id, self.wrapper);
+            let _ = self.io.out().write_all(&delete);
+        }
         if !self.kitty_keyboard {
             let _ = self.io.out().write_all(b"\x1b[>4;0m");
         }

@@ -410,5 +410,5 @@ Rust: `engine/crates/pixel-core/src/terminal/present/`. JS side: `packages/pixel
 - **Transport:** shared memory (`t=s`), then temp files, then inline zlib (`t=d`, `o=z`). Over ssh it is inline.
 - **Atomic frames:** each frame is wrapped in synchronized output (`CSI ?2026h/l`).
 - **Patched mode:** used on Ghostty 1.2+ and kitty. Other terminals and tmux get full frames.
-- **tmux:** DCS passthrough plus unicode placeholders.
+- **tmux:** DCS passthrough plus unicode placeholders. Inline frames alternate between two image ids, so the image on screen is never rewritten (`present/full.rs`).
 - **herdr:** full frames over the herdr graphics socket (`engine/crates/pixel-core/src/herdr.rs`).
